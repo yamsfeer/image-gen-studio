@@ -1,7 +1,7 @@
 # Image Gen Studio —— ComfyUI 生图服务 + Web UI
 
 > 用 AutoDL 云服务器（RTX 2080 Ti 11GB）跑 AI 图片生成的完整项目：
-> 后端 = 包装 ComfyUI 的 HTTP API 服务；前端 = 待开发的 Web UI（预设工作流 + 提示词一键生图）。
+> 后端 = 包装 ComfyUI 的 HTTP API 服务；前端 = Gradio Web UI（预设工作流 + 提示词一键生图）。
 
 ## 项目结构
 
@@ -14,28 +14,26 @@ image-gen-studio/
 │   ├── api.md                 # 后端 API 参考
 │   ├── parameter-guide.md     # 参数调优认知 + 最佳实践（重要经验）
 │   ├── dev-workflow.md        # 本地改代码→云端部署→前端看效果 的开发流程
-│   └── setup.md               # 部署可复现性：资产清单 + 全新实例重建流程
+│   ├── setup.md               # 部署可复现性：资产清单 + 全新实例重建流程
+│   └── deployment.md          # 换机器/全新环境部署 runbook
 ├── deploy.sh                  # ★ 一键部署：同步后端代码到服务器 + 重启服务层
-├── setup/
+├── scripts/
 │   └── setup-server.sh        # ★ 服务器一键重建（幂等）：ComfyUI+插件+模型+nginx
-├── code/
-│   ├── client/                # 客户端脚本（可直接用）
-│   │   ├── client.py          #   生图服务客户端库（generate/task/image/stats）
-│   │   └── benchmark.py       #   交叉对比实验脚本（4模型×2工作流=8张图）
-│   ├── server/                # 服务端（部署在 AutoDL 服务器 /root/image-service/）
-│   │   ├── service.py         #   FastAPI 服务层
-│   │   └── workflows.py       #   模型注册表 + ComfyUI 工作流构造器
-│   └── tools/
-│       └── make_html.py       # 把实验结果 + 视觉评分生成 HTML 对比页
+├── server/                    # 服务端（部署在 AutoDL 服务器 /root/image-service/）
+│   ├── service.py             #   FastAPI 服务层
+│   └── workflows.py           #   模型注册表 + ComfyUI 工作流构造器
+├── client/                    # 客户端脚本（可直接用）
+│   ├── client.py              #   生图服务客户端库（generate/task/image/stats）
+│   └── benchmark.py           #   交叉对比实验脚本（4模型×2工作流=8张图）
+├── tools/
+│   └── make_html.py           # 把实验结果 + 视觉评分生成 HTML 对比页
 ├── workflows-official/        # 官方工作流（Comfy-Org 仓库下载，作参照）
 ├── benchmark/                 # ★ 交叉对比评测结果
 │   ├── README.md              #   评测说明（模型/参数/评分/发现）
 │   ├── benchmark.html         #   可视化对比页（浏览器打开）
 │   ├── results.json           #   原始数据
 │   └── images/                #   8 张生成图（4模型×2工作流）
-├── webui/                     # ★ Web UI（按 PLAN.md 实现，见其内部 README）
-└── artifacts/
-    └── images/                # 各模型单张测试图
+└── webui/                     # ★ Web UI（按 PLAN.md 实现，见其内部 README）
 ```
 
 ## 快速开始（本机调用生图服务）
@@ -50,7 +48,7 @@ sshpass -p "$SSH_PASSWORD" ssh -fN -o ExitOnForwardFailure=yes -p "$SSH_PORT" \
   -L 8080:localhost:8080 "$SSH_USER@$SERVER_HOST"
 
 # 2. 用客户端生图（client 自动读 .env 的 API_*）
-cd code/client
+cd client
 python3 client.py generate --model qwen-image --prompt "一只猫" --wait -o cat.png
 python3 client.py stats          # 看显卡状态
 python3 client.py models         # 看可用模型
@@ -75,8 +73,8 @@ python3 client.py models         # 看可用模型
 - 4 个模型可切换：SD 1.5 / SDXL 1.0 / Qwen-Image / Z-Image-Turbo
 - 每个模型支持参数覆盖（步数/cfg/采样器/调度器/分辨率/seed）
 - 任务排队 + 实时进度 + 图片下载
-- 交叉对比实验已验证（见 PLAN.md 和 code/benchmark.py）
+- 交叉对比实验已验证（见 PLAN.md 和 client/benchmark.py）
 
-## 下一步（见 PLAN.md）
+## 下一步（可选 v2）
 
-开发一个 Web UI：预设选择（模型 × 工作流）→ 填提示词 → 点运行 → 调后端 API 生图 → 展示结果。
+v1（Gradio）已完成并通过 Playwright 测试。可选后续：Vue3 + Vite SPA 产品化（见 PLAN.md 第 3 节）。

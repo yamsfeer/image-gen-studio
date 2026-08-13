@@ -83,7 +83,7 @@ ComfyUI 的 `/system_stats`、`/queue`、`/prompt`、`/view`、`/object_info` �
 127.0.0.1，由服务层（service.py 里的 `COMFY = "http://127.0.0.1:8188"`）内部直连，
 外部无法直接访问。
 
-## 客户端库（code/client/client.py）
+## 客户端库（client/client.py）
 
 已封装全部接口，Python 用法：
 

@@ -4,7 +4,7 @@
 #
 # 用途：全新实例从零恢复全部环境：ComfyUI + 插件 + 模型 + nginx + 启动脚本
 # 用法（本机执行，把脚本推到服务器再跑）：
-#   scp setup/setup-server.sh root@服务器:/root/
+#   scp scripts/setup-server.sh root@服务器:/root/
 #   ssh root@服务器 'bash /root/setup-server.sh'
 # 前置：AutoDL 实例已开（root 登录），数据盘有空间（>80G）
 #
@@ -148,5 +148,5 @@ chmod +x "$REMOTE_DIR/start_all.sh"
 echo ""
 echo "===== 重建完成 ====="
 echo "下一步：把服务层代码同步上来并启动"
-echo "  本机：./deploy.sh（含同步 code/server/ + 重启 + 验证）"
-echo "  或手动：scp code/server/*.py root@服务器:$REMOTE_DIR/ 然后 $REMOTE_DIR/start_all.sh"
+echo "  本机：./deploy.sh（含同步 server/ + 重启 + 验证）"
+echo "  或手动：scp server/*.py root@服务器:$REMOTE_DIR/ 然后 $REMOTE_DIR/start_all.sh"

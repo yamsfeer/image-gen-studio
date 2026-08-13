@@ -7,8 +7,8 @@
 用 AutoDL 云 GPU（RTX 2080 Ti 11GB）跑 AI 图片生成的完整项目：
 
 - **前端**：`webui/`（Gradio Web UI，按 PLAN.md 实现，本机运行）
-- **后端服务副本**：`code/server/`（FastAPI 服务层源码，**部署在云端服务器**）
-- **客户端**：`code/client/`（API 调用库 + 实验脚本）
+- **后端服务副本**：`server/`（FastAPI 服务层源码，**部署在云端服务器**）
+- **客户端**：`client/`（API 调用库 + 实验脚本）
 - **文档**：`docs/`（现状/API/参数经验/开发流程）
 - **评测**：`benchmark/`（交叉对比结果）
 
@@ -18,7 +18,7 @@
 本地（本项目）                    云端 AutoDL 服务器（显卡在这）
 ┌──────────────────────┐   ┌─────────────────────────────┐
 │ webui/ 前端 (Gradio) │   │ nginx:8080 (Basic Auth)     │
-│ code/server/ 后端源码│→→→│ FastAPI:8190 (服务层，无状态)│
+│ server/ 后端源码    │→→→│ FastAPI:8190 (服务层，无状态)│
 │ deploy.sh 部署脚本   │   │ ComfyUI:8188 (显卡+模型常驻) │
 └──────────────────────┘   └─────────────────────────────┘
   隧道：本机 localhost:8080 → 服务器 8080
@@ -30,10 +30,10 @@
 ## 常用命令
 
 ```bash
-# 部署后端：同步本地 code/server/ → 服务器 + 重启服务层 + 验证（改后端必用）
+# 部署后端：同步本地 server/ → 服务器 + 重启服务层 + 验证（改后端必用）
 ./deploy.sh
 
-# 全新实例重建环境（ComfyUI+插件+模型+nginx，幂等）：setup/setup-server.sh scp 到服务器执行
+# 全新实例重建环境（ComfyUI+插件+模型+nginx，幂等）：scripts/setup-server.sh scp 到服务器执行
 #   详见 docs/setup.md
 
 # 建 SSH 隧道（本机 8080 → 服务器 nginx 8080，访问服务/前端联调前先建）
@@ -43,7 +43,7 @@ sshpass -p "$SSH_PASSWORD" ssh -fN -o ExitOnForwardFailure=yes -p "$SSH_PORT" \
   -L 8080:localhost:8080 "$SSH_USER@$SERVER_HOST"
 
 # 生图客户端（本机）
-cd code/client && python3 client.py generate --model qwen-image --prompt "一只猫" --wait -o cat.png
+cd client && python3 client.py generate --model qwen-image --prompt "一只猫" --wait -o cat.png
 python3 client.py stats / models / task <id> / image <id> -o out.png
 
 # 启动前端（本机）
@@ -73,9 +73,9 @@ python3 webui/app.py    # http://127.0.0.1:7860
 ## 硬性约定（违反会踩坑）
 
 - **pkill 匹配要加方括号**：`pkill -f "[m]ain.py"`、`pkill -f "[u]vicorn"`（否则杀掉自己所在 SSH 会话）
-- **不要在服务器上直接改代码**：会被 deploy.sh 的 `--delete` 覆盖；要改先改本地 code/server/ 再部署
+- **不要在服务器上直接改代码**：会被 deploy.sh 的 `--delete` 覆盖；要改先改本地 server/ 再部署
 - **ComfyUI /queue 的 prompt_id 在 index 1**（每项是 `[编号, prompt_id, ...]`）
-- **webui/ 由前端 agent 维护**，改它不需要部署；改 code/server/ 才需要 ./deploy.sh
+- **webui/ 由前端 agent 维护**，改它不需要部署；改 server/ 才需要 ./deploy.sh
 
 ## 文档索引（改代码前先读对应文档）
 

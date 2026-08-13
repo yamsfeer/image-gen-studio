@@ -1,6 +1,6 @@
 """后端生图 API 轻量封装：generate / task / image / stats / models。
 
-逻辑参考 code/client/client.py，去掉了 CLI，改为适合在 Gradio 事件里
+逻辑参考 client/client.py，去掉了 CLI，改为适合在 Gradio 事件里
 直接调用的形态。所有网络错误统一包装为 ApiError，方便 UI 层展示。
 """
 import base64

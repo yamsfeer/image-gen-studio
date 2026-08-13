@@ -1,5 +1,5 @@
 #!/bin/bash
-# deploy.sh —— 把本地 code/server/ 同步到云端服务器并重启服务层
+# deploy.sh —— 把本地 server/ 同步到云端服务器并重启服务层
 #
 # 用法：./deploy.sh
 # 配置：项目根目录 .env（复制 .env.example 填写），或用同名环境变量覆盖。
@@ -8,7 +8,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ENV_FILE="$SCRIPT_DIR/.env"
-LOCAL_DIR="$SCRIPT_DIR/code/server"
+LOCAL_DIR="$SCRIPT_DIR/server"
 
 # ---- 加载 .env（存在才加载；已导出的环境变量优先于 .env）----
 if [ -f "$ENV_FILE" ]; then
@@ -40,7 +40,7 @@ else
   SSH_CMD=(ssh "${SSH_OPTS[@]}")
 fi
 
-echo "[1/3] 同步 code/server/ → $SERVER:$REMOTE_DIR"
+echo "[1/3] 同步 server/ → $SERVER:$REMOTE_DIR"
 rsync -az --delete -e "$RSYNC_RSH" "$LOCAL_DIR/" "$SERVER:$REMOTE_DIR/"
 
 echo "[2/3] 重启服务层（uvicorn）"

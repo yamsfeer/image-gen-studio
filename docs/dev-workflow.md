@@ -8,7 +8,7 @@
 本地（本项目）                    云端 AutoDL 服务器
 ┌─────────────────────┐   ┌──────────────────────────────┐
 │ webui/ 前端 (Gradio) │   │ nginx:8080 (Basic Auth)      │
-│ code/server/ 后端源码│→→→│ FastAPI:8190 (服务层，无状态) │
+│ server/ 后端源码    │→→→│ FastAPI:8190 (服务层，无状态) │
 │ deploy.sh 部署脚本   │   │ ComfyUI:8188 (显卡，模型常驻) │
 └─────────────────────┘   └──────────────────────────────┘
        隧道：本机 localhost:8080 → 服务器 8080
@@ -20,7 +20,7 @@
 ## 日常开发循环（推荐）
 
 ```bash
-# 1. 本地改代码（code/server/service.py 或 workflows.py）
+# 1. 本地改代码（server/service.py 或 workflows.py）
 
 # 2. 一条命令部署（同步 + 重启 + 验证）
 ./deploy.sh
@@ -48,11 +48,11 @@
 
 ## 可选：本地文件变化自动同步（Mac）
 
-用 `fswatch` 监听本地 code/server/，变化自动 rsync + 重启：
+用 `fswatch` 监听本地 server/，变化自动 rsync + 重启：
 
 ```bash
 # 需要先装 fswatch（brew install fswatch）
-fswatch -o code/server | while read; do ./deploy.sh; done
+fswatch -o server | while read; do ./deploy.sh; done
 ```
 
 ## 注意

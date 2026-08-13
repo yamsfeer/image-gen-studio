@@ -43,7 +43,7 @@
 
 原始模型文件（ModelScope 下载缓存）在 `/root/autodl-tmp/models/models/<org>--<repo>/snapshots/master`，ComfyUI/models 下都是**软链**，别复制。
 
-## 工作流（模型注册表，见 code/server/workflows.py）
+## 工作流（模型注册表，见 server/workflows.py）
 
 每个模型两个工作流变体，通过 API 参数（steps/cfg/sampler/scheduler/宽高/seed）切换。
 **默认值已按官方最佳实践更新（详见 docs/parameter-guide.md）**：
@@ -71,7 +71,7 @@
 - **ModelScope 搜索 API 404**：探测仓库用 `curl -w "%{http_code}" https://www.modelscope.cn/api/v1/models/<org>/<repo>`
 - **2080Ti 11G 跑 Qwen Q3**：模型 9G 靠 offload 撑住，约 17s/步（30 步 ≈ 8.5min）；Z-Image fp8 40s/张
 
-## 客户端用法（本机 code/client/client.py）
+## 客户端用法（本机 client/client.py）
 
 ```bash
 python3 client.py generate --model qwen-image --prompt "..." [--steps 30 --cfg 4 --width 1024 --height 1024 --sampler euler --scheduler karras --seed 42] --wait -o out.png

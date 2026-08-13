@@ -14,7 +14,7 @@ import os
 def _load_env_file(path):
     """极简 .env 加载器（KEY=VALUE，支持 # 注释；不覆盖已存在的环境变量）。
 
-    与 code/client/client.py 中的实现保持一致；如需更复杂的 .env 语法
+    与 client/client.py 中的实现保持一致；如需更复杂的 .env 语法
     （插值、多行值等），可改用 python-dotenv。
     """
     if not os.path.isfile(path):

@@ -56,7 +56,7 @@
 
 ```bash
 # 前置：本机 SSH 隧道已建（见 docs/server-status.md）
-cd code/client
+cd client
 python3 benchmark.py          # 重新跑一遍矩阵（改 MATRIX 里的参数/提示词即可）
 python3 ../tools/make_html.py # 评分 + 生成 HTML
 ```

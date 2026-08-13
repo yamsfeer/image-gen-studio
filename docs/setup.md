@@ -1,7 +1,7 @@
 # 部署可复现性说明
 
 > 目标：全新 AutoDL 实例也能一键恢复全部环境，不丢任何部署资产。
-> 脚本：`setup/setup-server.sh`（幂等，可重跑）。本文说明资产清单与使用流程。
+> 脚本：`scripts/setup-server.sh`（幂等，可重跑）。本文说明资产清单与使用流程。
 
 ## 为什么需要
 
@@ -35,7 +35,7 @@ cp .env.example .env
 
 # 2. 把重建脚本传到服务器（本机执行）
 source .env
-sshpass -p "$SSH_PASSWORD" scp -P "$SSH_PORT" setup/setup-server.sh "$SSH_USER@$SERVER_HOST":/root/
+sshpass -p "$SSH_PASSWORD" scp -P "$SSH_PORT" scripts/setup-server.sh "$SSH_USER@$SERVER_HOST":/root/
 
 # 3. 服务器上执行（首次装模型约 1-2 小时，重跑只补缺失）
 #    用 API_PASSWORD 指定 nginx 密码，保证与本地 .env 一致
@@ -52,6 +52,6 @@ sshpass -p "$SSH_PASSWORD" ssh -p "$SSH_PORT" "$SSH_USER@$SERVER_HOST" \
 - 脚本**幂等**：已存在的文件/目录自动跳过，重跑安全。
 - SDXL 单文件 ckpt（checkpoints/）依赖历史缓存的 sdxl_single 目录；若新实例没有，脚本会提示手动处理（可用 `dl_sdxl_single.py` 的方式重新下载，见 docs/server-status.md）。
 - AutoDL 数据盘 `/root/autodl-tmp` **关机不丢**（保存镜像也不丢，但换实例/重置会丢）——换实例必须重跑本脚本。
-- 服务层代码（code/server/）**始终以本地为准**，deploy.sh 负责同步；setup 脚本不包含服务层源码（避免双份真源）。
+- 服务层代码（server/）**始终以本地为准**，deploy.sh 负责同步；setup 脚本不包含服务层源码（避免双份真源）。
 - **nginx 密码一致性**：脚本用 `API_PASSWORD` 环境变量设置 Basic Auth 密码并写入 `/root/comfy_api_password.txt`。若未提供，会随机生成并提示你回填到本地 `.env`——务必回填，否则本地前端/客户端连不上。
 - 所有路径变量（`PYTHON_BIN` / `DATA_DIR` / `COMFY_DIR` / `REMOTE_DIR`）均有 AutoDL 默认值，可用环境变量覆盖，便于换到其它 Linux 服务器。

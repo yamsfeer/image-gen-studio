@@ -36,9 +36,9 @@ def _load_env_file(path):
                 os.environ[key] = val
 
 
-# 依次加载：项目根 .env → code/client/.env（后者可覆盖根配置）
+# 依次加载：项目根 .env → client/.env（后者可覆盖根配置）
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_ROOT = os.path.dirname(os.path.dirname(_HERE))  # code/client 的上两级 = 项目根
+_ROOT = os.path.dirname(_HERE)  # client 的上一级 = 项目根
 _load_env_file(os.path.join(_ROOT, ".env"))
 _load_env_file(os.path.join(_HERE, ".env"))
 
