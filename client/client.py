@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""生图服务客户端库 —— 供 Agent 调用 AutoDL 上的 ComfyUI 生图服务
+"""生图服务客户端库 —— 唯一的 API 客户端实现，CLI 与 webui 共用。
 
-用法（作为库）：
-    from client import ImageClient
+作为库导入（从仓库根）：
+    from client.client import ImageClient, ApiError
+    c = ImageClient.from_env()              # 从 .env / 环境变量读取连接信息
     c = ImageClient("http://localhost:8080", "comfy", "密码")
     task = c.generate("qwen-image", "一只猫")
-    print(c.wait(task["task_id"]))          # 轮询到完成
+    c.wait(task["task_id"])                 # 轮询到完成
     c.download(task["task_id"], "cat.png")  # 下载图片
 
-用法（命令行）：
-    python3 client.py generate --model qwen-image --prompt "一只猫"
+作为命令行：
+    cd client && python3 client.py generate --model qwen-image --prompt "一只猫"
     python3 client.py task <task_id>
     python3 client.py download <task_id> -o out.png
     python3 client.py stats
@@ -57,6 +58,10 @@ API_USER_DEFAULT = _env("API_USER", "IMAGE_API_USER", default="comfy")
 API_PASSWORD_DEFAULT = _env("API_PASSWORD", "IMAGE_API_PASSWORD", default="")
 
 
+class ApiError(Exception):
+    """后端不可达或返回错误时抛出，message 可直接展示给用户。"""
+
+
 class ImageClient:
     def __init__(self, base: str, user: str, password: str):
         self.base = base.rstrip("/")
@@ -67,15 +72,23 @@ class ImageClient:
         """从环境变量/.env 构造：API_BASE / API_USER / API_PASSWORD。"""
         return cls(API_BASE_DEFAULT, API_USER_DEFAULT, API_PASSWORD_DEFAULT)
 
-    def _req(self, path: str, data=None, timeout=60):
+    def _req(self, path: str, data=None, timeout=60) -> bytes:
         req = urllib.request.Request(self.base + path,
                                      method="POST" if data is not None else "GET")
         req.add_header("Authorization", f"Basic {self.auth}")
         if data is not None:
             req.add_header("Content-Type", "application/json")
             req.data = json.dumps(data).encode()
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            return r.read()
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return r.read()
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="replace")
+            raise ApiError(f"HTTP {e.code}: {body[:300]}") from e
+        except urllib.error.URLError as e:
+            raise ApiError(f"无法连接后端 {self.base}：{e.reason}") from e
+        except OSError as e:
+            raise ApiError(f"网络错误：{e}") from e
 
     def _json(self, path: str, data=None, timeout=60):
         return json.loads(self._req(path, data, timeout))
@@ -115,8 +128,13 @@ class ImageClient:
             time.sleep(poll)
         raise TimeoutError(f"任务 {task_id} 超时")
 
+    def image_bytes(self, task_id: str, index: int = 0, timeout=60) -> bytes:
+        """下载任务产出的 PNG 二进制。"""
+        return self._req(f"/image/{task_id}?index={index}", timeout=timeout)
+
     def download(self, task_id: str, output: str, index: int = 0, timeout=60):
-        data = self._req(f"/image/{task_id}?index={index}", timeout=timeout)
+        """下载 PNG 并保存到本地文件，返回文件路径。"""
+        data = self.image_bytes(task_id, index, timeout)
         with open(output, "wb") as f:
             f.write(data)
         return output
@@ -154,26 +172,30 @@ def main():
     args = p.parse_args()
     c = ImageClient(args.base, args.user, args.password)
 
-    if args.cmd == "models":
-        for m in c.models():
-            print(f"{m['id']:15s} {m['name']}  ({m.get('note','')})")
-    elif args.cmd == "stats":
-        print(json.dumps(c.stats(), ensure_ascii=False, indent=2))
-    elif args.cmd == "task":
-        print(json.dumps(c.task(args.task_id), ensure_ascii=False, indent=2))
-    elif args.cmd == "download":
-        out = args.output or f"img_{args.task_id[:8]}_{args.index}.png"
-        print("保存到", c.download(args.task_id, out, args.index))
-    elif args.cmd == "generate":
-        r = c.generate(args.model, args.prompt, args.negative, args.width,
-                       args.height, args.steps, args.cfg, args.seed, args.batch)
-        print(f"已提交 task_id={r['task_id']} status={r['status']}")
-        if args.wait:
-            st = c.wait(r["task_id"])
-            print(f"最终状态: {st['status']} 耗时 {st.get('elapsed_seconds')}s")
-            if st["images"] and args.output:
-                print("保存到", c.download(r["task_id"], args.output))
-                print("图片 URL:", [f"{args.base}{u}" for u in st["images"]])
+    try:
+        if args.cmd == "models":
+            for m in c.models():
+                print(f"{m['id']:15s} {m['name']}  ({m.get('note','')})")
+        elif args.cmd == "stats":
+            print(json.dumps(c.stats(), ensure_ascii=False, indent=2))
+        elif args.cmd == "task":
+            print(json.dumps(c.task(args.task_id), ensure_ascii=False, indent=2))
+        elif args.cmd == "download":
+            out = args.output or f"img_{args.task_id[:8]}_{args.index}.png"
+            print("保存到", c.download(args.task_id, out, args.index))
+        elif args.cmd == "generate":
+            r = c.generate(args.model, args.prompt, args.negative, args.width,
+                           args.height, args.steps, args.cfg, args.seed, args.batch)
+            print(f"已提交 task_id={r['task_id']} status={r['status']}")
+            if args.wait:
+                st = c.wait(r["task_id"])
+                print(f"最终状态: {st['status']} 耗时 {st.get('elapsed_seconds')}s")
+                if st["images"] and args.output:
+                    print("保存到", c.download(r["task_id"], args.output))
+                    print("图片 URL:", [f"{args.base}{u}" for u in st["images"]])
+    except ApiError as e:
+        print(f"错误：{e}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

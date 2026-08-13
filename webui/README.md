@@ -53,9 +53,8 @@ python3 webui/app.py
 
 ```
 webui/
-├── app.py          # 入口
+├── app.py          # 入口（把仓库根加入 sys.path，复用 client/）
 ├── config.py       # API 地址 / 凭据 / 轮询间隔（读 .env + 环境变量）
-├── api_client.py   # API 封装（generate / task / image / stats）
 ├── presets.py      # 加载 presets.json
 ├── presets.json    # 8 个预设参数（与 /generate 请求体对齐）
 ├── handlers.py     # 事件处理（预设填充 / 生成 / 轮询 / GPU / 历史）
@@ -63,6 +62,9 @@ webui/
 ├── downloads/      # 生成图片落地目录（供下载按钮引用）
 └── tests/          # Playwright 自动化测试
 ```
+
+> API 客户端不在这里重复实现，统一复用仓库根的 `client/client.py`（`ImageClient` / `ApiError`）。
+> 因此 webui 需在仓库内运行（`python webui/app.py`），或把 `client/` 一并带上。
 
 ## Playwright 自动化测试
 

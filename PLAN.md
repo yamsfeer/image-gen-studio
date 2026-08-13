@@ -119,7 +119,7 @@ Open WebUI 的 Pipelines 机制能挂工具，但改造出"预设工作流面板
 |---|---|---|
 | T1 | 初始化 v1 项目（`webui/` 目录），装 gradio | 可运行空页面 |
 | T2 | 写 `presets.json`（上节内容） | 配置就绪 |
-| T3 | API 对接层：封装 generate/task/image/stats 四个调用（Basic Auth + 隧道 base URL，参考 client/client.py 逻辑） | `api_client.py` |
+| T3 | API 对接层：封装 generate/task/image/stats 四个调用（Basic Auth + 隧道 base URL，参考 client/client.py 逻辑） | `client/client.py`（共享） |
 | T4 | 核心界面：预设选择 + 提示词 + 高级参数 + 生成按钮 + 结果画廊 | F1-F5 可用 |
 | T5 | 进度轮询 + 错误处理 + GPU 状态条 + 会话历史 | F6-F7 |
 | T6 | 联调：本机建隧道 → 跑通"选预设→生成→出图"全流程 | 验收 |

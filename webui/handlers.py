@@ -11,7 +11,7 @@ from datetime import datetime
 import gradio as gr
 from PIL import Image
 
-from api_client import ApiError, ImageClient
+from client.client import ApiError, ImageClient
 from config import API_BASE, API_PASSWORD, API_USER, DOWNLOAD_DIR
 from presets import find_preset, get_presets
 
