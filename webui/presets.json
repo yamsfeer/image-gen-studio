@@ -1,0 +1,124 @@
+{
+  "presets": [
+    {
+      "id": "qwen-standard",
+      "label": "Qwen-Image · 高质量",
+      "model": "qwen-image",
+      "workflow": "standard",
+      "params": {
+        "steps": 12,
+        "cfg": 1.0,
+        "sampler": "res_multistep",
+        "scheduler": "simple",
+        "width": 1280,
+        "height": 1280
+      },
+      "desc": "阿里通义千问 20B（GGUF Q3），官方蒸馏配置，实测 9.5 分，约 3 分钟"
+    },
+    {
+      "id": "qwen-popular",
+      "label": "Qwen-Image · 官方蒸馏配置",
+      "model": "qwen-image",
+      "workflow": "popular",
+      "params": {
+        "steps": 20,
+        "cfg": 3.5,
+        "sampler": "dpmpp_2m",
+        "scheduler": "karras",
+        "width": 1280,
+        "height": 1280
+      },
+      "desc": "官方普通版推荐参数（20步cfg3.5），更稳但更慢"
+    },
+    {
+      "id": "sdxl-standard",
+      "label": "SDXL · 标准",
+      "model": "sdxl",
+      "workflow": "standard",
+      "params": {
+        "steps": 20,
+        "cfg": 7.0,
+        "sampler": "euler",
+        "scheduler": "normal",
+        "width": 1024,
+        "height": 1024
+      },
+      "desc": "英文提示词效果最佳，约 16 秒"
+    },
+    {
+      "id": "sdxl-popular",
+      "label": "SDXL · 流行配置",
+      "model": "sdxl",
+      "workflow": "popular",
+      "params": {
+        "steps": 20,
+        "cfg": 7.0,
+        "sampler": "dpmpp_2m",
+        "scheduler": "karras",
+        "width": 1024,
+        "height": 1024
+      },
+      "desc": "dpmpp_2m + karras，社区常用"
+    },
+    {
+      "id": "zimage-standard",
+      "label": "Z-Image-Turbo · 极速",
+      "model": "z-image-turbo",
+      "workflow": "standard",
+      "params": {
+        "steps": 8,
+        "cfg": 1.0,
+        "sampler": "dpmpp_2m",
+        "scheduler": "karras",
+        "width": 1024,
+        "height": 1024
+      },
+      "desc": "阿里通义万相 6B，8 步约 40 秒"
+    },
+    {
+      "id": "zimage-popular",
+      "label": "Z-Image-Turbo · 官方推荐",
+      "model": "z-image-turbo",
+      "workflow": "popular",
+      "params": {
+        "steps": 8,
+        "cfg": 1.0,
+        "sampler": "dpmpp_2m",
+        "scheduler": "karras",
+        "width": 1280,
+        "height": 1280
+      },
+      "desc": "1280² 高清变体（cfg1 为实测最佳；官方 cfg3 实测翻车仅 3.0 分）"
+    },
+    {
+      "id": "sd15-standard",
+      "label": "SD 1.5 · 标准",
+      "model": "sd15",
+      "workflow": "standard",
+      "params": {
+        "steps": 25,
+        "cfg": 7.0,
+        "sampler": "euler",
+        "scheduler": "normal",
+        "width": 512,
+        "height": 512
+      },
+      "desc": "最老模型，仅基准对比"
+    },
+    {
+      "id": "sd15-popular",
+      "label": "SD 1.5 · 流行配置",
+      "model": "sd15",
+      "workflow": "popular",
+      "params": {
+        "steps": 20,
+        "cfg": 7.0,
+        "sampler": "dpmpp_2m",
+        "scheduler": "karras",
+        "width": 512,
+        "height": 512
+      },
+      "desc": "dpmpp_2m + karras"
+    }
+  ]
+}

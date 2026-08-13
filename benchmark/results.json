@@ -1,0 +1,43 @@
+{
+  "meta": {
+    "date": "2026-08-13",
+    "gpu": "NVIDIA GeForce RTX 2080 Ti 11GB (AutoDL)",
+    "prompt": "a cute shiba inu wearing a red beret sitting by a cafe window, warm golden light, cozy atmosphere, photorealistic, highly detailed",
+    "negative_prompt": "blurry, low quality, deformed limbs, watermark, text",
+    "seed": 42,
+    "scoring": "外部视觉模型 Qwen-VL 评分 0-10（画质+主题符合+细节）",
+    "note": "耗时=采样阶段耗时（不含排队）；图片命名 模型__工作流.png"
+  },
+  "results": [
+    {"model": "sd15", "model_label": "SD 1.5", "workflow": "standard",
+     "params": {"steps": 25, "cfg": 7.0, "sampler": "euler", "scheduler": "normal", "width": 512, "height": 512},
+     "elapsed_seconds": 6, "score": 8.0, "image": "images/sd15__standard.png"},
+    {"model": "sd15", "model_label": "SD 1.5", "workflow": "popular",
+     "params": {"steps": 20, "cfg": 7.0, "sampler": "dpmpp_2m", "scheduler": "karras", "width": 512, "height": 512},
+     "elapsed_seconds": 12, "score": 7.2, "image": "images/sd15__popular.png"},
+    {"model": "sdxl", "model_label": "SDXL 1.0", "workflow": "standard",
+     "params": {"steps": 20, "cfg": 7.0, "sampler": "euler", "scheduler": "normal", "width": 1024, "height": 1024},
+     "elapsed_seconds": 23, "score": 9.3, "image": "images/sdxl__standard.png"},
+    {"model": "sdxl", "model_label": "SDXL 1.0", "workflow": "popular",
+     "params": {"steps": 20, "cfg": 7.0, "sampler": "dpmpp_2m", "scheduler": "karras", "width": 1024, "height": 1024},
+     "elapsed_seconds": 34, "score": 9.5, "image": "images/sdxl__popular.png"},
+    {"model": "qwen-image", "model_label": "Qwen-Image (GGUF Q3)", "workflow": "standard",
+     "params": {"steps": 30, "cfg": 4.0, "sampler": "euler", "scheduler": "karras", "width": 1024, "height": 1024},
+     "elapsed_seconds": 588, "score": 5.5, "image": "images/qwen-image__standard.png"},
+    {"model": "qwen-image", "model_label": "Qwen-Image (GGUF Q3)", "workflow": "popular",
+     "params": {"steps": 12, "cfg": 1.0, "sampler": "res_multistep", "scheduler": "simple", "width": 1280, "height": 1280},
+     "elapsed_seconds": 181, "score": 9.5, "image": "images/qwen-image__popular.png"},
+    {"model": "z-image-turbo", "model_label": "Z-Image-Turbo (fp8)", "workflow": "standard",
+     "params": {"steps": 8, "cfg": 1.0, "sampler": "dpmpp_2m", "scheduler": "karras", "width": 1024, "height": 1024},
+     "elapsed_seconds": 21, "score": 7.7, "image": "images/z-image-turbo__standard.png"},
+    {"model": "z-image-turbo", "model_label": "Z-Image-Turbo (fp8)", "workflow": "popular",
+     "params": {"steps": 8, "cfg": 3.0, "sampler": "dpmpp_2m", "scheduler": "karras", "width": 1024, "height": 1024},
+     "elapsed_seconds": 26, "score": 3.0, "image": "images/z-image-turbo__popular.png"}
+  ],
+  "key_findings": [
+    "Qwen-Image 官方蒸馏配置（12步 res_multistep/simple 1280²）9.5 分 完胜默认 30步cfg4 的 5.5 分，且快 3 倍——默认参数应更新为官方配置",
+    "Z-Image-Turbo 官方推荐 cfg3 严重过饱和（3.0 分），应锁 cfg1（7.7 分）",
+    "SDXL 最稳：两配置均 9.3+ 分，英文提示词下性价比最高（23s/张）",
+    "SD 1.5 仅作基准，上限低"
+  ]
+}
