@@ -58,7 +58,7 @@
 # 前置：本机 SSH 隧道已建（见 docs/server-status.md）
 cd client
 python3 benchmark.py          # 重新跑一遍矩阵（改 MATRIX 里的参数/提示词即可）
-python3 ../tools/make_html.py # 评分 + 生成 HTML
+# 说明：评分/HTML 生成工具（tools/make_html.py）已移除；现有结论见 benchmark.html 与 results.json
 ```
 
 相关文档：模型清单与部署现状见 `../docs/server-status.md`；API 见 `../docs/api.md`。

@@ -6,7 +6,7 @@
 
 用 AutoDL 云 GPU（RTX 2080 Ti 11GB）跑 AI 图片生成的完整项目：
 
-- **前端**：`webui/`（Gradio Web UI，按 PLAN.md 实现，本机运行）
+- **前端**：`webui/`（Gradio Web UI，按 docs/plan.md 实现，本机运行）
 - **后端服务副本**：`server/`（FastAPI 服务层源码，**部署在云端服务器**）
 - **客户端**：`client/`（API 调用库 + 实验脚本）
 - **文档**：`docs/`（现状/API/参数经验/开发流程）
@@ -84,5 +84,5 @@ python3 webui/app.py    # http://127.0.0.1:7860
 - `docs/parameter-guide.md` —— 参数调优认知 + 最佳实践（为什么用这些参数）
 - `docs/dev-workflow.md` —— 本地改代码 → 云端部署 → 前端看效果
 - `docs/deployment.md` —— 换机器/全新环境部署 runbook（setup → deploy → start_all → 隧道 → 验证）
-- `PLAN.md` —— 前端 Web UI 计划（webui/ 的实现依据）
+- `docs/plan.md` —— 前端 Web UI 计划（webui/ 的实现依据）
 - `benchmark/README.md` —— 交叉对比评测结果

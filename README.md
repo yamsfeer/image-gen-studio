@@ -8,32 +8,30 @@
 ```
 image-gen-studio/
 ├── README.md                  # 本文件：项目总览
-├── PLAN.md                    # 前端 Web UI 开发计划（交给执行 agent）
 ├── docs/
 │   ├── server-status.md       # 服务器/模型/工作流现状（给下一个 AI 的上下文）
 │   ├── api.md                 # 后端 API 参考
 │   ├── parameter-guide.md     # 参数调优认知 + 最佳实践（重要经验）
 │   ├── dev-workflow.md        # 本地改代码→云端部署→前端看效果 的开发流程
 │   ├── setup.md               # 部署可复现性：资产清单 + 全新实例重建流程
-│   └── deployment.md          # 换机器/全新环境部署 runbook
+│   ├── deployment.md          # 换机器/全新环境部署 runbook
+│   └── plan.md                # 前端 Web UI 开发计划
 ├── deploy.sh                  # ★ 一键部署：同步后端代码到服务器 + 重启服务层
 ├── scripts/
 │   └── setup-server.sh        # ★ 服务器一键重建（幂等）：ComfyUI+插件+模型+nginx
 ├── server/                    # 服务端（部署在 AutoDL 服务器 /root/image-service/）
 │   ├── service.py             #   FastAPI 服务层
 │   └── workflows.py           #   模型注册表 + ComfyUI 工作流构造器
-├── client/                    # 客户端脚本（可直接用）
+├── client/                    # API 客户端库 + CLI + 实验脚本
 │   ├── client.py              #   生图服务客户端库（generate/task/image/stats）
 │   └── benchmark.py           #   交叉对比实验脚本（4模型×2工作流=8张图）
-├── tools/
-│   └── make_html.py           # 把实验结果 + 视觉评分生成 HTML 对比页
 ├── workflows-official/        # 官方工作流（Comfy-Org 仓库下载，作参照）
 ├── benchmark/                 # ★ 交叉对比评测结果
 │   ├── README.md              #   评测说明（模型/参数/评分/发现）
 │   ├── benchmark.html         #   可视化对比页（浏览器打开）
 │   ├── results.json           #   原始数据
 │   └── images/                #   8 张生成图（4模型×2工作流）
-└── webui/                     # ★ Web UI（按 PLAN.md 实现，见其内部 README）
+└── webui/                     # ★ Web UI（按 docs/plan.md 实现，见其内部 README）
 ```
 
 ## 快速开始（本机调用生图服务）
@@ -73,8 +71,8 @@ python3 client.py models         # 看可用模型
 - 4 个模型可切换：SD 1.5 / SDXL 1.0 / Qwen-Image / Z-Image-Turbo
 - 每个模型支持参数覆盖（步数/cfg/采样器/调度器/分辨率/seed）
 - 任务排队 + 实时进度 + 图片下载
-- 交叉对比实验已验证（见 PLAN.md 和 client/benchmark.py）
+- 交叉对比实验已验证（见 docs/plan.md 和 client/benchmark.py）
 
 ## 下一步（可选 v2）
 
-v1（Gradio）已完成并通过 Playwright 测试。可选后续：Vue3 + Vite SPA 产品化（见 PLAN.md 第 3 节）。
+v1（Gradio）已完成并通过 Playwright 测试。可选后续：Vue3 + Vite SPA 产品化（见 docs/plan.md 第 3 节）。
