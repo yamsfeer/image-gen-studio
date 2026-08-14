@@ -1,9 +1,61 @@
-"""模型注册表 + ComfyUI 工作流构造器"""
+"""模型注册表 + ComfyUI 工作流构造器 + 能力/预设定义
+
+- builder 函数：把请求参数构造成 ComfyUI 工作流图（每个模型一个）
+- MODELS：模型注册表（builder + defaults 最佳参数 + description）
+- PARAMS：共享参数定义（范围/档位，供 /models 与参数校验使用）
+- ASPECT_RATIOS / RESOLUTIONS：宽高比与分辨率预设（供 /presets 使用）
+- CAPABILITIES：当前支持的能力开关（供 /presets 使用，前端据此渲染控件）
+"""
 import os
 
 # Z-Image-Turbo diffusers 目录（AutoDL 数据盘）
 ZIMAGE_PATH = "z-image-turbo"  # 相对 ComfyUI/models/diffusers
 
+# ---------------- 参数定义（范围 / 档位） ----------------
+# type=int/float/select；min/max/step 用于滑杆，options 用于下拉。
+# 与 service.py 的校验逻辑共用同一份，避免两端不一致。
+PARAMS = {
+    "width":    {"type": "int",   "min": 256, "max": 2048, "step": 64},
+    "height":   {"type": "int",   "min": 256, "max": 2048, "step": 64},
+    "steps":    {"type": "int",   "min": 1,   "max": 100,  "step": 1},
+    "cfg":      {"type": "float", "min": 1.0, "max": 20.0, "step": 0.5},
+    "sampler":  {"type": "select", "options": [
+        "euler", "euler_ancestral", "dpm_2", "dpmpp_2m", "dpmpp_2m_sde",
+        "dpmpp_sde", "ddim", "uni_pc", "res_multistep"]},
+    "scheduler": {"type": "select", "options": [
+        "normal", "karras", "simple", "sgm_uniform", "ddim_uniform"]},
+}
+
+# ---------------- 宽高比 / 分辨率预设 ----------------
+# ratio 存原始比例 (w, h)；label 给前端展示用。
+ASPECT_RATIOS = [
+    {"id": "1:1",  "label": "方形 1:1",  "ratio": (1, 1)},
+    {"id": "4:3",  "label": "横版 4:3",  "ratio": (4, 3)},
+    {"id": "3:4",  "label": "竖版 3:4",  "ratio": (3, 4)},
+    {"id": "16:9", "label": "横屏 16:9", "ratio": (16, 9)},
+    {"id": "9:16", "label": "竖屏 9:16", "ratio": (9, 16)},
+]
+
+# 分辨率档位 = 短边长度（64 的倍数）。1280 档 + 16:9/9:16 会超 2048，由后端校验拒绝。
+RESOLUTIONS = [
+    {"value": 512,  "label": "512（小）"},
+    {"value": 768,  "label": "768（中）"},
+    {"value": 1024, "label": "1024（大）"},
+    {"value": 1280, "label": "1280（大图，较慢）"},
+]
+
+# 能力开关：前端只渲染 true 的项；放开新能力时把对应项翻 true 并加字段。
+CAPABILITIES = {
+    "aspect_ratio": True,
+    "resolution": True,
+    "seed_control": False,
+    "loras": False,
+    "img2img": False,
+    "inpaint": False,
+    "upscale": False,
+}
+
+# ---------------- 工作流构造器 ----------------
 
 def build_qwen_image(prompt, negative, width, height, steps, cfg, seed, batch, sampler="euler", scheduler="karras"):
     """Qwen-Image GGUF（Q3_K_M 量化）：UnetLoaderGGUF + CLIPLoaderGGUF(qwen_image)"""
@@ -82,7 +134,7 @@ MODELS = {
         "builder": build_sd15,
         "defaults": {"width": 512, "height": 512, "steps": 25, "cfg": 7.0,
                      "sampler": "euler", "scheduler": "normal"},
-        "note": "最老的模型，仅作基准对比",
+        "description": "最老的模型，仅作基准对比",
     },
     "qwen-image": {
         "name": "Qwen-Image (Q3_K_M, GGUF)",
@@ -90,20 +142,20 @@ MODELS = {
         # 官方蒸馏配置（实测 9.5 分，对比见 docs/parameter-guide.md）
         "defaults": {"width": 1280, "height": 1280, "steps": 12, "cfg": 1.0,
                      "sampler": "res_multistep", "scheduler": "simple"},
-        "note": "中文理解强；默认=官方蒸馏配置，勿用高步数/高cfg",
+        "description": "中文理解强；默认=官方蒸馏配置，勿用高步数/高cfg",
     },
     "sdxl": {
         "name": "Stable Diffusion XL base 1.0",
         "builder": build_sdxl,
         "defaults": {"width": 1024, "height": 1024, "steps": 20, "cfg": 7.0,
                      "sampler": "euler", "scheduler": "normal"},
-        "note": "英文提示词效果更稳",
+        "description": "英文提示词效果更稳",
     },
     "z-image-turbo": {
         "name": "Z-Image-Turbo (diffusers)",
         "builder": build_z_image,
         "defaults": {"width": 1024, "height": 1024, "steps": 8, "cfg": 1.0,
                      "sampler": "dpmpp_2m", "scheduler": "karras"},
-        "note": "Turbo 少步数快速出图；DMD 蒸馏不支持负面提示词，cfg 建议 1.0-3.0",
+        "description": "Turbo 少步数快速出图；DMD 蒸馏不支持负面提示词，cfg 建议 1.0-3.0",
     },
 }

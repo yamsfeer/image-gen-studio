@@ -1,23 +1,29 @@
-"""生图服务：包装 ComfyUI 后端的 HTTP API
-- POST /generate   提交生图任务（指定模型/提示词/参数），立即返回 task_id
-- GET  /task/{id}  轮询任务状态（排队/运行/完成/出错 + 实时进度）
-- GET  /stats      显卡状态 + 队列情况
-- GET  /image/{task_id}  下载生成图片
-- GET  /models     列出可用模型
+"""生图服务：包装 ComfyUI 后端的 HTTP API（资源化 REST，设计见 adr/0003）
+
+- GET  /                              API 总览（版本 + 资源链接）
+- GET  /presets                       预设数据源：宽高比/分辨率 + capabilities
+- GET  /models                        模型目录（defaults + params 参数定义）
+- POST /tasks                         提交生图任务（异步，返回 task_id + links）
+- GET  /tasks/{task_id}               轮询任务状态
+- GET  /tasks/{task_id}/images        任务产出的图片列表
+- GET  /tasks/{task_id}/images/{index} 下载第 N 张图（PNG）
+- GET  /status                        服务/GPU/队列状态
 """
-import asyncio, json, os, subprocess, time, uuid
-from typing import Optional, List
+import asyncio, json, subprocess, time, uuid
+from datetime import datetime
+from typing import Optional
 
 import requests
 from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel, Field
 
-from workflows import MODELS
+from workflows import MODELS, PARAMS, ASPECT_RATIOS, RESOLUTIONS, CAPABILITIES
 
 COMFY = "http://127.0.0.1:8188"
 CLIENT_ID = "image-service-" + uuid.uuid4().hex[:8]  # WebSocket 进度监听用同一个 client_id
+VERSION = "1.1.0"
 
-app = FastAPI(title="Image Service", version="1.0.0")
+app = FastAPI(title="Image Service", version=VERSION)
 
 # ---------------- 任务注册表 ----------------
 TASKS: dict[str, dict] = {}
@@ -76,52 +82,136 @@ async def on_startup():
     asyncio.create_task(ws_progress_listener())
 
 # ---------------- 参数模型 ----------------
-class GenerateRequest(BaseModel):
+class CreateTaskRequest(BaseModel):
     model: str = "qwen-image"
     prompt: str = Field(..., min_length=1)
     negative_prompt: str = ""
-    width: int = 1024
-    height: int = 1024
-    steps: int = 30
-    cfg: float = 4.0
-    seed: int = Field(default_factory=lambda: int(time.time()))
+    # 尺寸三选一：width/height（显式）| aspect_ratio+resolution（预设）| 都不传（模型默认）
+    width: Optional[int] = None
+    height: Optional[int] = None
+    aspect_ratio: Optional[str] = None
+    resolution: Optional[int] = None  # 短边长度，64 的倍数
+    steps: Optional[int] = None       # 缺省用模型默认
+    cfg: Optional[float] = None
+    seed: Optional[int] = None        # 缺省随机（时间戳）
     batch_size: int = 1
-    sampler: Optional[str] = None   # 覆盖模型默认采样器
-    scheduler: Optional[str] = None # 覆盖模型默认调度器
+    sampler: Optional[str] = None     # 覆盖模型默认采样器
+    scheduler: Optional[str] = None   # 覆盖模型默认调度器
+
+# ---------------- 工具 ----------------
+def _round64(x: float) -> int:
+    return int(round(x / 64) * 64)
+
+def _iso(epoch: Optional[float]) -> Optional[str]:
+    if epoch is None:
+        return None
+    return datetime.fromtimestamp(epoch).astimezone().isoformat()
+
+def _ratio_wh(ratio_id: str, resolution: int) -> tuple[int, int]:
+    """按预设宽高比 + 短边长度计算 (width, height)。"""
+    for r in ASPECT_RATIOS:
+        if r["id"] == ratio_id:
+            w, h = r["ratio"]
+            break
+    else:
+        raise HTTPException(400, f"未知宽高比: {ratio_id}，可选: {[r['id'] for r in ASPECT_RATIOS]}")
+    if w >= h:  # 横版/方形：短边是 height
+        return _round64(resolution * w / h), resolution
+    return resolution, _round64(resolution * h / w)  # 竖版：短边是 width
+
+def _resolve_size(req: CreateTaskRequest) -> tuple[int, int]:
+    """解析并校验尺寸（三选一），返回 (width, height)。"""
+    explicit = req.width is not None or req.height is not None
+    preset = req.aspect_ratio is not None or req.resolution is not None
+    if explicit and preset:
+        raise HTTPException(400, "width/height 与 aspect_ratio/resolution 二选一，不能同时传")
+    defaults = MODELS[req.model]["defaults"]
+    if preset:
+        if req.aspect_ratio is None or req.resolution is None:
+            raise HTTPException(400, "aspect_ratio 与 resolution 需成对提供")
+        if not (256 <= req.resolution <= 2048 and req.resolution % 64 == 0):
+            raise HTTPException(400, f"resolution 需为 256-2048 且是 64 的倍数，收到 {req.resolution}")
+        w, h = _ratio_wh(req.aspect_ratio, req.resolution)
+    elif explicit:
+        w = req.width if req.width is not None else defaults["width"]
+        h = req.height if req.height is not None else defaults["height"]
+    else:
+        w, h = defaults["width"], defaults["height"]
+    for name, v in (("width", w), ("height", h)):
+        if not (256 <= v <= 2048):
+            raise HTTPException(400, f"{name}={v} 超出范围 256-2048")
+        if v % 64:
+            raise HTTPException(400, f"{name}={v} 需为 64 的倍数")
+    return w, h
+
+def _task_view(task: dict) -> dict:
+    """任务 → 对外 JSON（内部存 epoch 时间戳，对外转 ISO）。"""
+    elapsed = (task.get("finished_at") or time.time()) - task["created_at"]
+    return {
+        "task_id": task["task_id"],
+        "model": task["model"],
+        "status": task["status"],
+        "queue_position": task["queue_position"],
+        "progress": task["progress"],
+        "params": task["params"],
+        "images": [f"/tasks/{task['task_id']}/images/{i}" for i in range(len(task["images"]))],
+        "error": task["error"],
+        "created_at": _iso(task["created_at"]),
+        "finished_at": _iso(task.get("finished_at")),
+        "elapsed_seconds": round(elapsed, 1),
+    }
 
 # ---------------- 接口 ----------------
 @app.get("/")
 def root():
-    return {"service": "image-service", "models": list(MODELS), "docs": "/docs"}
+    return {"service": "image-service", "version": VERSION,
+            "endpoints": {"presets": "/presets", "models": "/models",
+                          "tasks": "/tasks", "status": "/status"}}
+
+@app.get("/presets")
+def presets():
+    return {
+        "aspect_ratios": [{"id": r["id"], "label": r["label"]} for r in ASPECT_RATIOS],
+        "resolutions": RESOLUTIONS,
+        "capabilities": CAPABILITIES,
+    }
 
 @app.get("/models")
 def list_models():
-    return [{"id": k, **{kk: v for kk, v in m.items() if kk != "builder"}} for k, m in MODELS.items()]
+    return {"models": [
+        {"id": k, "name": m["name"], "description": m.get("description", ""),
+         "defaults": m["defaults"], "params": PARAMS}
+        for k, m in MODELS.items()]}
 
-@app.post("/generate")
-def generate(req: GenerateRequest):
+@app.post("/tasks", status_code=201)
+def create_task(req: CreateTaskRequest):
     if req.model not in MODELS:
         raise HTTPException(400, f"未知模型: {req.model}，可用: {list(MODELS)}")
     if not req.prompt.strip():
         raise HTTPException(400, "prompt 不能为空")
-    if not (256 <= req.width <= 2048 and 256 <= req.height <= 2048):
-        raise HTTPException(400, "宽高需在 256-2048 之间")
-    if req.width % 64 or req.height % 64:
-        raise HTTPException(400, "宽高需为 64 的倍数")
-    if not (1 <= req.steps <= 100):
-        raise HTTPException(400, "steps 需在 1-100")
-    if not (1.0 <= req.cfg <= 20.0):
-        raise HTTPException(400, "cfg 需在 1-20")
     if not (1 <= req.batch_size <= 4):
         raise HTTPException(400, "batch_size 需在 1-4")
+
+    defaults = MODELS[req.model]["defaults"]
+    width, height = _resolve_size(req)
+    steps = req.steps if req.steps is not None else defaults["steps"]
+    cfg = req.cfg if req.cfg is not None else defaults["cfg"]
+    if not (1 <= steps <= 100):
+        raise HTTPException(400, f"steps={steps} 超出范围 1-100")
+    if not (1.0 <= cfg <= 20.0):
+        raise HTTPException(400, f"cfg={cfg} 超出范围 1-20")
+    seed = req.seed if req.seed is not None else int(time.time())
+    sampler = req.sampler or defaults.get("sampler", "euler")
+    scheduler = req.scheduler or defaults.get("scheduler", "normal")
 
     task_id = uuid.uuid4().hex
     task = {
         "task_id": task_id,
         "model": req.model,
         "prompt": req.prompt,
-        "params": {"width": req.width, "height": req.height, "steps": req.steps,
-                   "cfg": req.cfg, "seed": req.seed, "batch_size": req.batch_size},
+        "params": {"width": width, "height": height, "steps": steps, "cfg": cfg,
+                   "seed": seed, "batch_size": req.batch_size,
+                   "sampler": sampler, "scheduler": scheduler},
         "status": "submitted",   # submitted → queued → running → done/error
         "progress": None,
         "queue_position": None,
@@ -134,12 +224,9 @@ def generate(req: GenerateRequest):
     TASKS[task_id] = task
 
     try:
-        defaults = MODELS[req.model]["defaults"]
-        sampler = req.sampler or defaults.get("sampler", "euler")
-        scheduler = req.scheduler or defaults.get("scheduler", "normal")
         workflow = MODELS[req.model]["builder"](
-            req.prompt, req.negative_prompt, req.width, req.height,
-            req.steps, req.cfg, req.seed, req.batch_size, sampler, scheduler)
+            req.prompt, req.negative_prompt, width, height,
+            steps, cfg, seed, req.batch_size, sampler, scheduler)
         r = comfy_post("/prompt", {"prompt": workflow, "client_id": CLIENT_ID})
         task["prompt_id"] = r["prompt_id"]
         task["status"] = "queued"
@@ -147,7 +234,8 @@ def generate(req: GenerateRequest):
         task["status"] = "error"
         task["error"] = f"提交到 ComfyUI 失败: {e}"
 
-    return {"task_id": task_id, "status": task["status"], "prompt_id": task["prompt_id"]}
+    return {"task_id": task_id, "status": task["status"], "model": req.model,
+            "links": {"task": f"/tasks/{task_id}", "images": f"/tasks/{task_id}/images"}}
 
 def _refresh_status(task: dict):
     """从 ComfyUI 实时刷新任务状态（排队位置/完成/错误/图片）"""
@@ -187,33 +275,35 @@ def _refresh_status(task: dict):
         except Exception:
             pass
 
-@app.get("/task/{task_id}")
+@app.get("/tasks/{task_id}")
 def get_task(task_id: str):
     task = TASKS.get(task_id)
     if not task:
         raise HTTPException(404, "任务不存在")
     if task["status"] not in ("error",):
         _refresh_status(task)
-    elapsed = (task.get("finished_at") or time.time()) - task["created_at"]
-    return {
-        "task_id": task_id,
-        "model": task["model"],
-        "status": task["status"],
-        "queue_position": task["queue_position"],
-        "progress": task["progress"],
-        "images": [f"/image/{task_id}?index={i}" for i in range(len(task["images"]))],
-        "error": task["error"],
-        "elapsed_seconds": round(elapsed, 1),
-    }
+    return _task_view(task)
 
-@app.get("/image/{task_id}")
-def get_image(task_id: str, index: int = 0):
+@app.get("/tasks/{task_id}/images")
+def list_images(task_id: str):
+    task = TASKS.get(task_id)
+    if not task:
+        raise HTTPException(404, "任务不存在")
+    params = task["params"]
+    images = [{"index": i, "url": f"/tasks/{task_id}/images/{i}",
+               "width": params["width"], "height": params["height"],
+               "filename": img["filename"]}
+              for i, img in enumerate(task["images"])]
+    return {"status": task["status"], "images": images}
+
+@app.get("/tasks/{task_id}/images/{index}")
+def get_image(task_id: str, index: int):
     task = TASKS.get(task_id)
     if not task:
         raise HTTPException(404, "任务不存在")
     if task["status"] != "done" or not task["images"]:
         raise HTTPException(409, "任务未完成，无图片可下载")
-    if index >= len(task["images"]):
+    if index < 0 or index >= len(task["images"]):
         raise HTTPException(400, f"index 超范围，共 {len(task['images'])} 张")
     img = task["images"][index]
     try:
@@ -223,8 +313,10 @@ def get_image(task_id: str, index: int = 0):
     return Response(content=data, media_type="image/png",
                     headers={"Content-Disposition": f'inline; filename="{task_id}_{index}.png"'})
 
-@app.get("/stats")
-def stats():
+@app.get("/status")
+def status():
+    service = {"status": "ok", "version": VERSION}
+    comfyui = {"status": "ok"}
     # GPU 状态
     gpu = {}
     try:
@@ -237,12 +329,13 @@ def stats():
                "utilization_pct": int(parts[3]), "temperature_c": int(parts[4])}
     except Exception:
         gpu = {"error": "nvidia-smi 不可用"}
-    # 队列
+    # 队列（失败则 ComfyUI 标记异常）
     queue = {"running": 0, "pending": 0}
     try:
         q = comfy_get("/queue", timeout=10)
         queue = {"running": len(q.get("queue_running", [])), "pending": len(q.get("queue_pending", []))}
     except Exception:
-        pass
+        comfyui = {"status": "error"}
     active = [t for t in TASKS.values() if t["status"] in ("submitted", "queued", "running")]
-    return {"gpu": gpu, "queue": queue, "active_tasks": len(active), "total_tasks": len(TASKS)}
+    return {"service": service, "comfyui": comfyui, "gpu": gpu, "queue": queue,
+            "tasks": {"active": len(active), "total": len(TASKS)}}

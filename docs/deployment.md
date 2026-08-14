@@ -82,7 +82,7 @@ cd .. && python3 webui/app.py     # 前端再走一遍「选预设 → 生成」
 
 - **步骤 1（setup）**：装 ComfyUI 本体 + GGUF 插件 + 4 个模型（软链）+ nginx + 生成 `start_all.sh`。
   幂等，可重跑。`API_PASSWORD` 会写入服务器 `/root/comfy_api_password.txt` 并设为 nginx Basic Auth 密码。
-- **步骤 2（deploy）**：`rsync` 同步 `server/` → 服务器 + `pkill uvicorn` + 重启 + `curl /stats` 验证。
+- **步骤 2（deploy）**：`rsync` 同步 `server/` → 服务器 + `pkill uvicorn` + 重启 + `curl /status` 验证。
   只负责服务层，**不会启动 ComfyUI**。
 - **步骤 3（start_all）**：拉起 ComfyUI(8188) + nginx reload（uvicorn 若已由 deploy 启动则跳过）。
 - **步骤 4（隧道）**：AutoDL 入站只放行 SSH 端口，nginx:8080 必须经 SSH 隧道从本机 `localhost:8080` 访问。

@@ -8,6 +8,10 @@
 ```
 image-gen-studio/
 ├── README.md                  # 本文件：项目总览
+├── adr/                       # 架构/功能设计决策记录（ADR）
+│   ├── README.md              #   约定 + 索引
+│   ├── 0001-backend-api-baseline.md   # 后端 API 基线盘点
+│   └── 0002-backend-schema-and-simple-params.md  # 参数自省 + 面向小白的参数简化
 ├── docs/
 │   ├── server-status.md       # 服务器/模型/工作流现状（给下一个 AI 的上下文）
 │   ├── api.md                 # 后端 API 参考
@@ -15,7 +19,8 @@ image-gen-studio/
 │   ├── dev-workflow.md        # 本地改代码→云端部署→前端看效果 的开发流程
 │   ├── setup.md               # 部署可复现性：资产清单 + 全新实例重建流程
 │   ├── deployment.md          # 换机器/全新环境部署 runbook
-│   └── plan.md                # 前端 Web UI 开发计划
+│   ├── plan.md                # 前端 Web UI 开发计划
+│   └── backlog.md             # 功能待办（暂缓的任务/图片管理、图生图等）
 ├── deploy.sh                  # ★ 一键部署：同步后端代码到服务器 + 重启服务层
 ├── scripts/
 │   └── setup-server.sh        # ★ 服务器一键重建（幂等）：ComfyUI+插件+模型+nginx
