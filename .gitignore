@@ -1,6 +1,9 @@
 # 环境与密钥（真实值只在本机，用 .env.example 作模板）
 .env
 
+# skill 运行时配置（真实凭据，仅存在于使用副本；源码用 config.example.json 作模板）
+skills/image-gen/config.json
+
 # Python
 __pycache__/
 *.py[cod]

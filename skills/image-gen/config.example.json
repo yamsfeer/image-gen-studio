@@ -1,0 +1,6 @@
+{
+  "api_base": "http://localhost:8080",
+  "api_user": "comfy",
+  "api_password": "",
+  "model": "qwen-image"
+}
