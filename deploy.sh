@@ -44,12 +44,10 @@ echo "[1/3] 同步 server/ → $SERVER:$REMOTE_DIR"
 rsync -az --delete -e "$RSYNC_RSH" "$LOCAL_DIR/" "$SERVER:$REMOTE_DIR/"
 
 echo "[2/3] 重启服务层（uvicorn）"
-"${SSH_CMD[@]}" "$SERVER" "pkill -f '[u]vicorn service:app' 2>/dev/null || true; sleep 2; \
-  ( cd $REMOTE_DIR && setsid nohup $PYTHON_BIN \
-    -m uvicorn service:app --host 127.0.0.1 --port 8190 \
-    > server.log 2>&1 < /dev/null & )"
+# 通过远程脚本重启，避免 pkill 匹配到 SSH 命令行自身（见 server/restart_service.sh 顶部注释）
+"${SSH_CMD[@]}" "$SERVER" "chmod +x $REMOTE_DIR/restart_service.sh && bash $REMOTE_DIR/restart_service.sh"
 
 echo "[3/3] 验证"
 sleep 3
-"${SSH_CMD[@]}" "$SERVER" "curl -s --max-time 5 -o /dev/null -w '服务层 HTTP %{http_code}\n' http://127.0.0.1:8190/stats"
+"${SSH_CMD[@]}" "$SERVER" "curl -s --max-time 5 -o /dev/null -w '服务层 HTTP %{http_code}\n' http://127.0.0.1:8190/"
 echo "完成。前端（webui 或浏览器）刷新即可看到新后端效果。"

@@ -98,7 +98,7 @@ class ImageClient:
         return self._json("/models")
 
     def stats(self):
-        return self._json("/stats")
+        return self._json("/status")
 
     def generate(self, model: str, prompt: str, negative_prompt: str = "",
                  width: int = 1024, height: int = 1024, steps: int = 30,
@@ -113,10 +113,10 @@ class ImageClient:
             body["sampler"] = sampler
         if scheduler:
             body["scheduler"] = scheduler
-        return self._json("/generate", body, timeout=timeout)
+        return self._json("/tasks", body, timeout=timeout)
 
     def task(self, task_id: str):
-        return self._json(f"/task/{task_id}", timeout=30)
+        return self._json(f"/tasks/{task_id}", timeout=30)
 
     def wait(self, task_id: str, poll=5, timeout=1800):
         """轮询直到完成/出错，返回最终任务状态"""
@@ -130,7 +130,7 @@ class ImageClient:
 
     def image_bytes(self, task_id: str, index: int = 0, timeout=60) -> bytes:
         """下载任务产出的 PNG 二进制。"""
-        return self._req(f"/image/{task_id}?index={index}", timeout=timeout)
+        return self._req(f"/tasks/{task_id}/images/{index}", timeout=timeout)
 
     def download(self, task_id: str, output: str, index: int = 0, timeout=60):
         """下载 PNG 并保存到本地文件，返回文件路径。"""
@@ -174,8 +174,8 @@ def main():
 
     try:
         if args.cmd == "models":
-            for m in c.models():
-                print(f"{m['id']:15s} {m['name']}  ({m.get('note','')})")
+            for m in c.models()["models"]:
+                print(f"{m['id']:15s} {m['name']}  ({m.get('description','')})")
         elif args.cmd == "stats":
             print(json.dumps(c.stats(), ensure_ascii=False, indent=2))
         elif args.cmd == "task":

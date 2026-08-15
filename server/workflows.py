@@ -112,6 +112,27 @@ def build_z_image(prompt, negative, width, height, steps, cfg, seed, batch, samp
     }
 
 
+def build_flux(prompt, negative, width, height, steps, cfg, seed, batch, sampler="euler", scheduler="simple"):
+    """FLUX.1-dev（Q4_K_S GGUF unet + t5xxl fp8 + clip_l + ae VAE）"""
+    return {
+        "40": {"class_type": "UnetLoaderGGUF", "inputs": {"unet_name": "flux1-dev-Q4_K_S.gguf"}},
+        "41": {"class_type": "DualCLIPLoader", "inputs": {
+            "clip_name1": "clip_l.safetensors", "clip_name2": "t5xxl_fp8_e4m3fn.safetensors",
+            "type": "flux"}},
+        "42": {"class_type": "VAELoader", "inputs": {"vae_name": "ae.safetensors"}},
+        "43": {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": ["41", 0]}},
+        "44": {"class_type": "CLIPTextEncode", "inputs": {"text": negative, "clip": ["41", 0]}},
+        "45": {"class_type": "EmptyLatentImage", "inputs": {"width": width, "height": height, "batch_size": batch}},
+        "46": {"class_type": "KSampler", "inputs": {
+            "seed": seed, "steps": steps, "cfg": cfg,
+            "sampler_name": sampler, "scheduler": scheduler, "denoise": 1.0,
+            "model": ["40", 0], "positive": ["43", 0], "negative": ["44", 0],
+            "latent_image": ["45", 0]}},
+        "47": {"class_type": "VAEDecode", "inputs": {"samples": ["46", 0], "vae": ["42", 0]}},
+        "48": {"class_type": "SaveImage", "inputs": {"filename_prefix": "flux", "images": ["47", 0]}},
+    }
+
+
 def build_sd15(prompt, negative, width, height, steps, cfg, seed, batch, sampler="euler", scheduler="normal"):
     """SD 1.5（diffusers 目录，标准 StableDiffusionPipeline）"""
     return {
@@ -157,5 +178,12 @@ MODELS = {
         "defaults": {"width": 1024, "height": 1024, "steps": 8, "cfg": 1.0,
                      "sampler": "dpmpp_2m", "scheduler": "karras"},
         "description": "Turbo 少步数快速出图；DMD 蒸馏不支持负面提示词，cfg 建议 1.0-3.0",
+    },
+    "flux": {
+        "name": "FLUX.1-dev (Q4_K_S, GGUF)",
+        "builder": build_flux,
+        "defaults": {"width": 1024, "height": 1024, "steps": 20, "cfg": 1.0,
+                     "sampler": "euler", "scheduler": "simple"},
+        "description": "Flux.1-dev 量化版；英文提示词效果好，cfg 建议 1.0，步数 20 左右",
     },
 }
