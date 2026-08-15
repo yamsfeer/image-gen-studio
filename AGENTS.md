@@ -79,11 +79,12 @@ python3 webui/app.py    # http://127.0.0.1:7860
 
 ## 文档索引（改代码前先读对应文档）
 
-- `docs/server-status.md` —— 服务器/模型/服务现状 + 全部踩坑
+- `docs/server-status.md` —— 服务器/模型/服务现状 + 全部踩坑 + **开机自启机制**
 - `docs/api.md` —— 后端 API 参考（/presets /models /tasks /status，设计见 adr/0003）
 - `docs/parameter-guide.md` —— 参数调优认知 + 最佳实践（为什么用这些参数）
 - `docs/dev-workflow.md` —— 本地改代码 → 云端部署 → 前端看效果
-- `docs/deployment.md` —— 换机器/全新环境部署 runbook（setup → deploy → start_all → 隧道 → 验证）
+- `docs/deployment.md` —— 换机器/全新环境部署 runbook（setup → deploy → 开机自启 → 隧道 → 验证）
+- `docs/network-exposure.md` —— 公网暴露方案（AutoDL 端口限制 + frp 隧道，方案 B/C 对比）
 - `docs/plan.md` —— 前端 Web UI 计划（webui/ 的实现依据）
 - `docs/backlog.md` —— 功能待办（已确定但暂缓的接口，做之前先看）
 - `adr/` —— 架构/功能设计决策记录（改接口前先读，新增接口写 ADR）

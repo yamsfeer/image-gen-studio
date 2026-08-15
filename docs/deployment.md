@@ -66,11 +66,16 @@ sshpass -p "$SSH_PASSWORD" ssh -p "$SSH_PORT" "$SSH_USER@$SERVER_HOST" \
 sshpass -p "$SSH_PASSWORD" ssh -p "$SSH_PORT" "$SSH_USER@$SERVER_HOST" \
   '/root/image-service/start_all.sh'
 
-# 4. 本机建 SSH 隧道（端口用新值）
+# 4. 配置开机自启（可选但强烈建议：下次开机自动恢复，见 docs/server-status.md）
+sshpass -p "$SSH_PASSWORD" scp -P "$SSH_PORT" scripts/autorecover.sh "$SSH_USER@$SERVER_HOST":/root/image-service/
+sshpass -p "$SSH_PASSWORD" ssh -p "$SSH_PORT" "$SSH_USER@$SERVER_HOST" \
+  'chmod +x /root/image-service/autorecover.sh && echo "bash /root/image-service/autorecover.sh" > /etc/autodl.sh && chmod +x /etc/autodl.sh && bash /root/image-service/autorecover.sh'
+
+# 5. 本机建 SSH 隧道（端口用新值）
 sshpass -p "$SSH_PASSWORD" ssh -fN -o ExitOnForwardFailure=yes -p "$SSH_PORT" \
   -L 8080:localhost:8080 "$SSH_USER@$SERVER_HOST"
 
-# 5. 逐层验证（从底层往上）
+# 6. 逐层验证（从底层往上）
 cd client
 python3 client.py models          # nginx + FastAPI 通不通
 python3 client.py stats           # 显卡/队列有没有

@@ -26,6 +26,7 @@ ComfyUI 不是"NPM 包式自动依赖"——它由 **本体 + 插件 + 模型文
 | pip 依赖 | fastapi uvicorn gguf modelscope requests | miniconda base |
 | nginx 反代 + Basic Auth | 脚本自动写 /etc/nginx/conf.d/comfy.conf | nginx:8080 |
 | 启动脚本 | /root/image-service/start_all.sh（ComfyUI+服务层+nginx） | 服务器 |
+| 开机自启 | scripts/autorecover.sh → /etc/autodl.sh（每次开机自动拉起，见 server-status.md） | 服务器 |
 
 ## 全新实例恢复流程
 
