@@ -79,7 +79,7 @@ frp（Fast Reverse Proxy）解决的本质问题是：**一台没有公网入站
 用户浏览器
    │  域名 / 公网 IP
    ▼
-腾讯云 [腾讯云服务器IP]（有公网 IP，跑 frps = frp server）
+腾讯云（有公网 IP，跑 frps = frp server）
    │  端口 8080 收到请求
    │       ↓ frp 隧道
    ▼
@@ -115,7 +115,7 @@ nginx:8080（Basic Auth）→ FastAPI:8190 → ComfyUI:8188 → GPU
 
 ### 本项目现状
 
-- 已有腾讯云服务器（`[腾讯云服务器IP]`，[用户]，免密 SSH，见 AGENTS.md 情报）
+- 已有腾讯云服务器（公网 IP 见 AGENTS.md 情报，免密 SSH）
 - 腾讯云已跑 nginx（443/80）
 - 待办：腾讯云装 frps + AutoDL 装 frpc + 前端部署，即可对外提供访问
 

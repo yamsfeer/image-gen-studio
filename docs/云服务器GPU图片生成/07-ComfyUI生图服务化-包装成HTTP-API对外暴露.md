@@ -74,9 +74,9 @@ Agent/浏览器 ──▶ 本机 localhost:8080（SSH 隧道）
 # 一键启动（ComfyUI + 服务层 + nginx reload）
 /root/image-service/start_all.sh
 
-# 本机建 SSH 隧道
-sshpass -p '密码' ssh -fN -o ExitOnForwardFailure=yes -p 53278 \
-  -L 8080:localhost:8080 root@region-41.seetacloud.com
+# 本机建 SSH 隧道（连接信息从项目根 .env 读取）
+sshpass -p "$SSH_PASSWORD" ssh -fN -o ExitOnForwardFailure=yes -p "$SSH_PORT" \
+  -L 8080:localhost:8080 "$SSH_USER@$SERVER_HOST"
 
 # 客户端调用（本机 /tmp/image-service/client.py）
 python3 client.py generate --model qwen-image --prompt "一只猫" --wait -o cat.png
